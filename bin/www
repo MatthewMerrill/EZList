@@ -27,6 +27,10 @@ var server = http.createServer(app);
 
 var io = require('socket.io').listen(server),
     fs = require('fs');
+	
+try {
+fs.mkdirSync('md/');
+} catch (err){}
 
 var socks = {};
 
@@ -39,7 +43,7 @@ io.sockets.on('connection', function (socket) {
   socks[buffer].push(socket);
 
   try {
-    var filepath = "../md/"+ buffer +".md";
+    var filepath = "md/"+ buffer +".md";
     fs.accessSync(filepath, function(err) {
       console.log(err ? 'Defaulting buffer.' : 'Found buffer.');});
     body = fs.readFileSync(filepath).toString();
@@ -53,7 +57,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('refresh', function (data) {
     body = data.val;
 
-    var filepath = "../md/"+ data.buffer +".md";
+    var filepath = "md/"+ data.buffer +".md";
     fs.writeFileSync(filepath, body);
   });
 
