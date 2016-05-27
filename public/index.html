@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>EZList</title>
+    <link rel="stylesheet" href="http://codemirror.net/lib/codemirror.css">
+    <link rel="stylesheet" href="http://codemirror.net/theme/ambiance.css">
+    <script src="http://codemirror.net/lib/codemirror.js"></script>
+    <script src="http://codemirror.net/addon/mode/overlay.js"></script>
+    <script src="http://codemirror.net/mode/xml/xml.js"></script>
+    <script src="http://codemirror.net/mode/markdown/markdown.js"></script>
+    <script src="http://codemirror.net/mode/gfm/gfm.js"></script>
+
+    <!-- Code block highlighting modes -->
+    <script src="http://codemirror.net/mode/javascript/javascript.js"></script>
+    <script src="http://codemirror.net/mode/css/css.js"></script>
+    <script src="http://codemirror.net/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="http://codemirror.net/mode/clike/clike.js"></script>
+    <script src="http://codemirror.net/mode/clojure/clojure.js"></script>
+
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            max-width:inherit;
+            height: 100%;
+        }
+
+        #previewcontainer {
+            height: 50%;
+        }
+
+        #previewdiv {
+            padding: 15px;
+            height: 100%;
+            overflow: scroll;
+        }
+
+        html, .CodeMirror-scroll {
+            height: 100%;
+        }
+
+        form, .CodeMirror {
+            height: 50%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="previewcontainer">
+    <div id="previewdiv">Wait for preview...</div>
+</div>
+
+<textarea id="textit">Insert markdown here.</textarea>
+
+<script>
+    var editor = CodeMirror.fromTextArea(document.getElementById("textit"), {
+        mode: 'gfm',
+        lineNumbers: true,
+        theme: "ambiance"
+    });
+</script>
+
+
+<script src="http://cdn.socket.io/socket.io-1.4.5.js"></script>
+<script src="javascripts/markdown.js"></script>
+<script>
+    var $ = function (id) { return document.getElementById(id); };
+
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+
+    var buffername = getParameterByName("buffer") || "default";
+    console.log(buffername);
+    var socket = io.connect({query: "buffer=" + buffername});
+    var preview =  $("previewdiv")
+
+    setInterval(myTimer, 3000);
+    function myTimer() {
+        preview.innerHTML = markdown.toHTML(editor.getValue());
+    }
+
+    socket.on('refresh', function (data) {
+        editor.setValue(data.val);
+    });
+    socket.on('change', function (data) {
+        console.log(data.val);
+        editor.replaceRange(data.val.text, data.val.from, data.val.to);
+    });
+    editor.on('change', function (i, op) {
+        console.log(op);
+        socket.emit('change', {buffer:buffername, val:op});
+        socket.emit('refresh', {buffer:buffername, val:editor.getValue()});
+    });
+
+</script>
+
+</body>
+</html>
